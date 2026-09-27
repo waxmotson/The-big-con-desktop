@@ -1,7 +1,6 @@
 name: Build and notarize macOS release
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - "v*"
