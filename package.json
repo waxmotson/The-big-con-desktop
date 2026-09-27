@@ -1,6 +1,6 @@
 {
   "name": "the-big-con-desktop",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "THE BIG CON — desktop build with Discord Rich Presence",
   "main": "main.js",
   "private": true,
