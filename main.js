@@ -10,12 +10,22 @@ let reconnectTimer = null;
 let pendingJoinSecret = null;
 
 function loadConfig() {
-  const configPath = path.join(__dirname, 'config.json');
-  try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } catch (e) {
-    return { clientId: '' };
+  // Development: config.json sits beside main.js.
+  // Packaged builds: electron-builder also ships it in resources so the
+  // Discord client ID remains available outside the ASAR archive.
+  const candidates = [
+    path.join(process.resourcesPath, 'config.json'),
+    path.join(__dirname, 'config.json')
+  ];
+
+  for (const configPath of candidates) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (parsed && parsed.clientId) return parsed;
+    } catch (_) {}
   }
+
+  return { clientId: '' };
 }
 
 const config = loadConfig();
@@ -58,7 +68,9 @@ function registerOpenHandlers() {
       app.setAsDefaultProtocolClient(PROTOCOL);
       if (DISCORD_PROTOCOL) app.setAsDefaultProtocolClient(DISCORD_PROTOCOL);
     }
-  } catch (e) { /* ignore — protocol registration is best-effort */ }
+  } catch (e) {
+    console.warn('[protocol] registration failed:', e && e.message ? e.message : e);
+  }
 
   const fromArgv = extractJoinSecret(process.argv);
   if (fromArgv) pendingJoinSecret = fromArgv;
@@ -171,6 +183,14 @@ if (!gotLock) {
     registerOpenHandlers();
     connectRPC();
     createWindow();
+
+    console.log('[startup] packaged:', !process.defaultApp);
+    console.log('[startup] executable:', process.execPath);
+    console.log('[startup] clientId loaded:', !!config.clientId);
+    console.log('[startup] thebigcon protocol:', app.isDefaultProtocolClient(PROTOCOL));
+    if (DISCORD_PROTOCOL) {
+      console.log('[startup] discord protocol:', app.isDefaultProtocolClient(DISCORD_PROTOCOL));
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
